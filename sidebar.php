@@ -26,7 +26,6 @@ $username = isset($_SESSION['admin_user']['username']) ? $_SESSION['admin_user']
         <li><a href="view_staff.php">View Staff</a></li>
     </ul>
 </li>
-
         <li><a href="logout.php"><i class="fas fa-sign-out-alt"></i> Logout</a></li>
     </ul>
 </aside>
