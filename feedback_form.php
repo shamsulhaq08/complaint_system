@@ -32,7 +32,7 @@ if (isset($_POST['submit_feedback'])) {
 <body>
 
 <div class="container">
-    <h1>Submit Feedback</h1>
+    <h1> Feedback</h1>
     <form method="POST">
         <input type="text" name="client_name" placeholder="Your Name" required>
         <input type="email" name="client_email" placeholder="Your Email" required>

@@ -164,6 +164,31 @@ td img {
 .action-buttons .delete:hover {
     background-color: #c82333;
 }
+form button {
+    background-color: #007BFF;
+    color: white;
+    padding: 12px;
+    width: 100%;
+    border: none;
+    border-radius: 6px;
+    font-size: 16px;
+    cursor: pointer;
+    transition: background 0.3s;
+}
+
+form button:hover {
+    background-color: #0056b3;
+}
+
+.success {
+    color: green;
+    margin-bottom: 15px;
+}
+
+.error {
+    color: red;
+    margin-bottom: 15px;
+}
 
 /* Responsive table for small screens */
 @media screen and (max-width: 768px) {

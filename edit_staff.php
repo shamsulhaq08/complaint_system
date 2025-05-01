@@ -1,4 +1,53 @@
 <?php
+session_start();
+if (!isset($_SESSION['admin_user'])) {
+    header("Location: login.php");
+    exit;
+}
+?>
+
+<?php
+include 'db.php';
+
+// Handle delete
+if (isset($_GET['delete'])) {
+    $id = (int)$_GET['delete'];
+    $conn->query("DELETE FROM feedback WHERE id = $id");
+    echo "<script>alert('Feedback deleted!'); window.location='feedback_view.php';</script>";
+    exit;
+}
+
+// Fetch all feedback
+$result = $conn->query("SELECT * FROM feedback ORDER BY submitted_at DESC");
+?>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Edit Staff<</title>
+    <link rel="stylesheet" href="admin_styles.css">
+    <link rel="stylesheet" href="styles.css">
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+</head>
+<body>
+
+
+<div class="admin-wrapper">
+    <!-- Sidebar -->
+    <aside class="admin-sidebar">
+    <?php include 'sidebar.php'; ?>
+    </aside>
+
+    <!-- Main content -->
+    <main class="admin-main">
+    <div class="admin-header">
+    <h1>Edit Staff</h1>
+        </div>
+
+        <div class="container">
+       
+        <?php
 include 'db.php';
 
 $id = $_GET['id'];
@@ -29,10 +78,6 @@ if (isset($_POST['update'])) {
     echo "<script>alert('Staff updated successfully.'); window.location='add_staff.php';</script>";
 }
 ?>
-<head>
-    <title>Edit Staff</title>
-    <link rel="stylesheet" href="styles.css">
-</head>
 
 <form method="POST" enctype="multipart/form-data">
     <label>Name: <input type="text" name="name" value="<?= htmlspecialchars($staff['name']) ?>"></label><br>
@@ -42,3 +87,13 @@ if (isset($_POST['update'])) {
     <img src="<?= $staff['image'] ?>" width="80"><br><br>
     <button type="submit" name="update">Update</button>
 </form>
+
+    </div>
+</div>
+
+   
+    </main>
+
+ 
+</body>
+</html>

@@ -1,4 +1,11 @@
 <?php
+session_start();
+if (!isset($_SESSION['admin_user'])) {
+    header("Location: login.php");
+    exit;
+}
+?>
+<?php
 include 'db.php';
 
 $conn = new mysqli($servername, $username, $password, $dbname);
@@ -8,18 +15,20 @@ if ($conn->connect_error) {
 
 $sql = "SELECT * FROM complaints ORDER BY id DESC";
 $result = $conn->query($sql);
+// Get the admin username for the logged-in user
+$admin_user = $_SESSION['admin_user'];
+$username = $admin_user['username'];
 ?>
 
 <!DOCTYPE html>
 <html>
 <head>
     <title>View Complaints</title>
+    <link rel="stylesheet" href="admin_styles.css">
+    <link rel="stylesheet" href="styles.css">
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            background: #f4f4f4;
-            padding: 20px;
-        }
 
         .complaint-box {
             background: #fff;
@@ -76,7 +85,20 @@ $result = $conn->query($sql);
     </style>
 </head>
 <body>
+    
 
+<div class="admin-wrapper">
+    <!-- Sidebar -->
+    <aside class="admin-sidebar">
+    <?php include 'sidebar.php'; ?>
+    </aside>
+
+    <!-- Main content -->
+    <main class="admin-main">
+        <div class="admin-header">
+        <div class="container">
+      
+          
 <h1>Complaint List</h1>
 
 <?php
@@ -87,8 +109,7 @@ if ($result->num_rows > 0) {
 
         // Basic box
         echo "<div class='complaint-box' onclick=\"document.getElementById('$modal_id').style.display='block'\">";
-        echo "Name:<strong>" . htmlspecialchars($row['complaint_title']) . "</strong><br>";
-        echo htmlspecialchars($row['client_name']) . " - " . htmlspecialchars($row['urgency']);
+        echo "Customer Name:<strong>" . htmlspecialchars($row['client_name']) . "</strong><br>";
         echo "</div>";
 
         // Modal popup
@@ -145,6 +166,13 @@ window.onclick = function(event) {
     });
 };
 </script>
+    </div>
+</div>
+
+   
+    </main>
+
+  
 
 </body>
 </html>
