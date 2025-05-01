@@ -1,19 +1,15 @@
 <?php
-// db.php
+// Add these lines before creating the mysqli connection
+$servername = "localhost";
+$username = "root";
+$password = "12345"; // or "" if no password
+$dbname = "complaint_system";
 
-$host = 'localhost';          // Hostname
-$user = 'root';               // MySQL username
-$password = '12345';               // MySQL password (empty by default for XAMPP)
-$database = 'complaint_system';  // Your database name
+// Now create the connection
+$conn = new mysqli($servername, $username, $password, $dbname);
 
-// Create connection
-$conn = new mysqli($host, $user, $password, $database);
-
-// Check connection
+// Check the connection
 if ($conn->connect_error) {
     die("Connection failed: " . $conn->connect_error);
 }
-
-// Optional: set character set to UTF-8
-$conn->set_charset("utf8");
 ?>
