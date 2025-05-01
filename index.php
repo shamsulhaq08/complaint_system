@@ -19,7 +19,7 @@
             padding: 60px 40px;
             border-radius: 15px;
             box-shadow: 0 10px 25px rgba(0,0,0,0.1);
-            max-width: 500px;
+            max-width: 600px;
             width: 90%;
         }
 
