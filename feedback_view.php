@@ -85,6 +85,7 @@ $username = $admin_user['username'];
                             <tr>
                                 <th>Name</th>
                                 <th>Email</th>
+                                <th>Whatsapp</th>
                                 <th>Title</th>
                                 <th>Description</th>
                                 <th>Submitted</th>
@@ -94,10 +95,12 @@ $username = $admin_user['username'];
                         <tbody>
                         <?php while ($row = $result->fetch_assoc()): ?>
                             <tr class="feedback-row" data-id="<?= $row['id'] ?>" data-name="<?= htmlspecialchars($row['client_name']) ?>"
-                                data-email="<?= htmlspecialchars($row['client_email']) ?>" data-title="<?= htmlspecialchars($row['feedback_title']) ?>"
-                                data-desc="<?= htmlspecialchars($row['feedback_desc']) ?>" data-submitted="<?= $row['submitted_at'] ?>">
+                                data-email="<?= htmlspecialchars($row['client_email']) ?>" data-phone="<?= htmlspecialchars($row['phone']) ?>"
+                                data-title="<?= htmlspecialchars($row['feedback_title']) ?>" data-desc="<?= htmlspecialchars($row['feedback_desc']) ?>"
+                                data-submitted="<?= $row['submitted_at'] ?>">
                                 <td><?= htmlspecialchars($row['client_name']) ?></td>
                                 <td><?= htmlspecialchars($row['client_email']) ?></td>
+                                <td><?= htmlspecialchars($row['phone']) ?></td>
                                 <td><?= htmlspecialchars($row['feedback_title']) ?></td>
                                 <td><?= htmlspecialchars($row['feedback_desc']) ?></td>
                                 <td><?= $row['submitted_at'] ?></td>
@@ -121,6 +124,7 @@ $username = $admin_user['username'];
         <h2>Feedback Details</h2>
         <p><strong>Name:</strong> <span id="modalName"></span></p>
         <p><strong>Email:</strong> <span id="modalEmail"></span></p>
+        <p><strong>Whatsapp:</strong> <span id="modalPhone"></span></p>
         <p><strong>Title:</strong> <span id="modalTitle"></span></p>
         <p><strong>Description:</strong> <span id="modalDesc"></span></p>
         <p><strong>Submitted At:</strong> <span id="modalSubmitted"></span></p>
@@ -129,48 +133,31 @@ $username = $admin_user['username'];
 
 <!-- JavaScript -->
 <script>
-    // Get the modal
     var modal = document.getElementById("feedbackModal");
-
-    // Get the close button
     var span = document.getElementsByClassName("close")[0];
-
-    // Get all feedback rows
     var rows = document.querySelectorAll(".feedback-row");
 
-    // When a row is clicked, show modal with feedback details
     rows.forEach(function(row) {
         row.addEventListener("click", function() {
-            var name = row.getAttribute("data-name");
-            var email = row.getAttribute("data-email");
-            var title = row.getAttribute("data-title");
-            var desc = row.getAttribute("data-desc");
-            var submitted = row.getAttribute("data-submitted");
-
-            // Populate modal with the data
-            document.getElementById("modalName").textContent = name;
-            document.getElementById("modalEmail").textContent = email;
-            document.getElementById("modalTitle").textContent = title;
-            document.getElementById("modalDesc").textContent = desc;
-            document.getElementById("modalSubmitted").textContent = submitted;
-
-            // Display the modal
+            document.getElementById("modalName").textContent = row.getAttribute("data-name");
+            document.getElementById("modalEmail").textContent = row.getAttribute("data-email");
+            document.getElementById("modalPhone").textContent = row.getAttribute("data-phone");
+            document.getElementById("modalTitle").textContent = row.getAttribute("data-title");
+            document.getElementById("modalDesc").textContent = row.getAttribute("data-desc");
+            document.getElementById("modalSubmitted").textContent = row.getAttribute("data-submitted");
             modal.style.display = "block";
         });
     });
 
-    // Close the modal when the close button is clicked
     span.onclick = function() {
         modal.style.display = "none";
     }
 
-    // Close the modal if the user clicks outside of it
     window.onclick = function(event) {
         if (event.target == modal) {
             modal.style.display = "none";
         }
     }
 </script>
-
 </body>
 </html>
