@@ -310,7 +310,7 @@ if (!$result) {
 
     <h2>Submit a Complaint</h2>
         <div class="form-group">
-            <label for="staff_ids" style="text-align: center;">Complaint Against (select one or more):</label>
+            <label for="staff_ids" style="text-align: center;">Complaint Against Staff (select one or more):</label>
             <div class="staff-selection">
         <?php while ($staff = $result->fetch_assoc()): ?>
             <label class="staff-option" required>
@@ -367,20 +367,20 @@ if (!$result) {
             <label for="client_name">Your Name <span class="required">*</span></label>
             <input type="text" id="client_name" name="client_name" required>
         </div>
-
+        <div class="form-group">
+            <label for="client_phone">Phone Number <span class="required">*</span></label>
+            <input type="text" id="client_phone" name="client_phone" required>
+        </div>
         <div class="form-group">
             <label for="client_email">Your Email </label>
             <input type="email" id="client_email" name="client_email" >
         </div>
 
-        <div class="form-group">
-            <label for="client_phone">Phone Number <span class="required">*</span></label>
-            <input type="text" id="client_phone" name="client_phone" required>
-        </div>
+   
     </div>
     <div class="form-group">
-            <label for="complaint_desc">Complaint Description <span class="required">*</span></label>
-            <textarea id="complaint_desc" name="complaint_desc" required></textarea>
+            <label for="complaint_desc">Complaint Description </label>
+            <textarea id="complaint_desc" name="complaint_desc" ></textarea>
         </div>
 
     <div class="form-row">
