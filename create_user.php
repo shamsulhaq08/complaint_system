@@ -67,7 +67,7 @@ if ($result) {
         }
 
         table th {
-            background-color: #f4f4f4;
+            background-color: #1f2937;
             font-weight: bold;
         }
 

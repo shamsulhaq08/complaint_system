@@ -12,11 +12,12 @@ body {
 
 .admin-sidebar {
     width: 250px;
+    height: 100vh;
     background-color: #1f2937;
     color: #fff;
     display: flex;
     flex-direction: column;
-    box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+    box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
 }
 
 .sidebar-header {

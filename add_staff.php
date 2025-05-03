@@ -138,57 +138,111 @@ td img {
     }
 }
         </style>
+<?php
+include 'db.php';
 
+$message = "";
 
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $name = trim($_POST['name']);
+    $email = trim($_POST['email']);
+    $designation = trim($_POST['designation']);
+    $image = $_FILES['image'];
 
+    // Validate and handle file upload
+    $imagePath = null;
+    if ($image['error'] === UPLOAD_ERR_OK) {
+        $allowedTypes = ['image/jpeg', 'image/png', 'image/gif'];
+        $maxSize = 2 * 1024 * 1024; // 2MB
+
+        if (!in_array($image['type'], $allowedTypes)) {
+            $message = "Invalid image type. Only JPG, PNG, and GIF are allowed.";
+        } elseif ($image['size'] > $maxSize) {
+            $message = "Image size exceeds 2MB limit.";
+        } else {
+            $imageName = uniqid() . "_" . basename($image['name']);
+            $imagePath = "uploads/" . $imageName;
+
+            if (!is_dir("uploads")) {
+                mkdir("uploads", 0777, true);
+            }
+
+            if (!move_uploaded_file($image['tmp_name'], $imagePath)) {
+                $message = "Failed to upload image.";
+                $imagePath = null;
+            }
+        }
+    }
+
+    // Insert into DB using prepared statement
+    if (empty($message)) {
+        $stmt = $conn->prepare("INSERT INTO staff (name, email, designation, image) VALUES (?, ?, ?, ?)");
+
+        if (!$stmt) {
+            die("Prepare failed: " . $conn->error);
+        }
+
+        $stmt->bind_param("ssss", $name, $email, $designation, $imagePath);
+
+        if ($stmt->execute()) {
+            echo "<script>alert('Staff added successfully!');</script>";
+        } else {
+            echo "<script>alert('Database error: " . $stmt->error . "');</script>";
+        }
+
+        $stmt->close();
+    }
+}
+
+$conn->close();
+?>
+
+<!-- HTML Form -->
 <div class="admin-wrapper">
-    <!-- Sidebar -->
     <aside class="admin-sidebar">
-    <?php include 'sidebar.php'; ?>
+        <?php include 'sidebar.php'; ?>
     </aside>
 
-    <!-- Main content -->
     <main class="admin-main">
-    <div class="admin-header">
-    <h1>Add Staff</h1>
+        <div class="admin-header">
+            <h1>Add Staff</h1>
         </div>
+
         <div class="container">
-      
-        <form action="add_staff.php" method="POST" enctype="multipart/form-data">
-    <div class="form-row">
-        <div class="form-column">
-            <label for="name">Name:</label>
-            <input type="text" name="name" required>
+            <?php if (!empty($message)) : ?>
+                <div style="margin-bottom: 20px; color: green;"><?php echo htmlspecialchars($message); ?></div>
+            <?php endif; ?>
+
+            <form action="add_staff.php" method="POST" enctype="multipart/form-data">
+                <div class="form-row">
+                    <div class="form-column">
+                        <label for="name">Name:</label>
+                        <input type="text" name="name" required>
+                    </div>
+                    <div class="form-column">
+                        <label for="email">Email:</label>
+                        <input type="email" name="email">
+                    </div>
+                    <div class="form-column">
+                        <label for="designation">Designation:</label>
+                        <input type="text" name="designation">
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-column">
+                        <label for="image">Photo:</label>
+                        <input type="file" name="image" accept="image/*">
+                    </div>
+                </div>
+
+                <button type="submit">Add Staff</button>
+            </form>
         </div>
-        <div class="form-column">
-            <label for="email">Email:</label>
-            <input type="email" name="email">
-        </div>
-        <div class="form-column">
-            <label for="designation">Designation:</label>
-            <input type="text" name="designation">
-        </div>
-    </div>
-
-    <div class="form-row">
-        <div class="form-column">
-            <label for="image">Photo:</label>
-            <input type="file" name="image" accept="image/*">
-        </div>
-    </div>
-
-    <button type="submit" name="submit">Add Staff</button>
-</form>
-
-
-
-
-
-    </div>
+    </main>
 </div>
 
-   
-    </main>
+
 
 
 </body>
