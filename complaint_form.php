@@ -277,6 +277,13 @@ button[type="submit"]:hover {
     border: 1px solid #ebccd1;
 }
 
+.urdu-text {
+      font-family: 'Noto Nastaliq Urdu', serif;
+      font-size: 13px;
+      direction: rtl;
+      text-align: right;
+      line-height: 1.8;
+    }
     </style>
 
 <!DOCTYPE html>
@@ -284,6 +291,7 @@ button[type="submit"]:hover {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Nastaliq+Urdu&display=swap" rel="stylesheet">
     <title>Submit Complaint</title>
     
 </head>
@@ -310,7 +318,7 @@ if (!$result) {
 
     <h2>Submit a Complaint</h2>
         <div class="form-group">
-            <label for="staff_ids" style="text-align: center;">Complaint Against Staff (select one or more):</label>
+            <label for="staff_ids" style="text-align: center;">Complaint Against Staff (select one or more):<span class="urdu-text">(آپ ایک سے زائد افراد کا انتخاب بھی کر سکتے ہیں۔)</span></label>
             <div class="staff-selection">
         <?php while ($staff = $result->fetch_assoc()): ?>
             <label class="staff-option" required>
@@ -332,18 +340,113 @@ if (!$result) {
         });
     </script>
         </div>
-        <h3 style="text-align: center;">Voice Recording</h3>
-        <p style="text-align: center; margin: -14px;">آپ اپنی شکایت آواز کے ساتھ بھی ریکارڈ کر سکتے ہیں۔</p>
-            <div id="recorder" style="text-align: center; margin-top: 20px;">
-                <button type="button" id="startRecording" style="background-color: #4CAF50; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer;">Start Recording</button>
-                <button type="button" id="stopRecording" disabled style="background-color: #f44336; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer;">Stop Recording</button>
-                <button type="button" id="resetRecording" style="background-color: #ff9800; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; margin-left: 10px;">Reset</button>
-                <div style="margin-top: 10px; font-size: 16px; font-weight: bold; color: #555;">
+       
+        </div>  <div class="form-row">
+        <div class="form-group">
+            <label for="client_name">Your Name <span class="urdu-text">(براہِ کرم اپنا نام درج کریں ) </span><span class="required">*</span></label>
+            <input type="text" id="client_name" name="client_name" required>
+        </div>
+        <div class="form-group">
+            <label for="client_phone">Phone Number <span class="urdu-text">(واٹس ایپ نمبر / فون نمبر) </span><span class="required">*</span></label>
+            <input type="text" id="client_phone" name="client_phone" required>
+        </div>
+        <div class="form-group">
+            <label for="client_email">Your Email <span class="urdu-text">(براہِ کرم اپنا ای میل درج کریں)</span></label>
+            <input type="email" id="client_email" name="client_email" >
+        </div>
+
+   
+    </div>
+    <h3 style="text-align: center;">Voice Recording <span class="urdu-text">آپ اپنی شکایت اپنی آواز میں ریکارڈ بھی کر سکتے ہیں۔</span></h3>
+        <div id="recorder" style="text-align: center; margin-top: 20px;">
+            <button type="button" id="toggleRecording" style="background-color: #4CAF50; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer;">Start Recording</button>
+            <button type="button" id="resetRecording" style="background-color: #ff9800; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; margin-left: 10px;">Reset</button>
+            <div style="margin-top: 10px; font-size: 16px; font-weight: bold; color: #555;">
                 <span id="recordTime" style="display: inline-block; padding: 5px 10px; background-color: #e0e0e0; border-radius: 20px; min-width: 60px; text-align: center;">0:00</span>
-                </div>
-                <audio id="audioPreview" controls style="display:none; margin-top: 10px; width: 100%;"></audio>
-                <input type="file" name="voice_file" id="voiceFileInput" style="display: none;">
             </div>
+            <audio id="audioPreview" controls style="display:none; margin-top: 10px; width: 100%;"></audio>
+            <input type="file" name="voice_file" id="voiceFileInput" style="display: none;">
+        </div>
+
+        <script>
+            let mediaRecorder;
+            let recordedChunks = [];
+            let startTime;
+            const toggleBtn = document.getElementById("toggleRecording");
+            const resetBtn = document.getElementById("resetRecording");
+            const recordTimeEl = document.getElementById("recordTime");
+            const audioPreview = document.getElementById("audioPreview");
+            const voiceInput = document.getElementById("voiceFileInput");
+
+            toggleBtn.onclick = async () => {
+                if (toggleBtn.textContent === "Start Recording") {
+                    console.log("Start button clicked. Requesting microphone access...");
+
+                    try {
+                        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                        console.log("Permission granted. Microphone access acquired.");
+
+                        mediaRecorder = new MediaRecorder(stream);
+                        recordedChunks = [];
+
+                        mediaRecorder.ondataavailable = (e) => {
+                            if (e.data.size > 0) recordedChunks.push(e.data);
+                        };
+
+                        mediaRecorder.onstop = () => {
+                            const blob = new Blob(recordedChunks, { type: "audio/webm" });
+                            const audioURL = URL.createObjectURL(blob);
+                            audioPreview.src = audioURL;
+                            audioPreview.style.display = "block";
+
+                            const file = new File([blob], "voice_recording.webm", { type: "audio/webm" });
+                            const dataTransfer = new DataTransfer();
+                            dataTransfer.items.add(file);
+                            voiceInput.files = dataTransfer.files;
+                        };
+
+                        mediaRecorder.start();
+                        toggleBtn.textContent = "Stop Recording";
+                        toggleBtn.style.backgroundColor = "#f44336";
+                        startTime = Date.now();
+                        updateTimer();
+                    } catch (err) {
+                        console.error("Permission denied or error occurred: ", err);
+                        alert("Microphone permission denied or an error occurred. Please allow microphone access.");
+                    }
+                } else {
+                    mediaRecorder.stop();
+                    toggleBtn.textContent = "Start Recording";
+                    toggleBtn.style.backgroundColor = "#4CAF50";
+                }
+            };
+
+            resetBtn.onclick = () => {
+                if (mediaRecorder && mediaRecorder.state === "recording") {
+                    mediaRecorder.stop();
+                }
+                recordedChunks = [];
+                startTime = null;
+                recordTimeEl.textContent = "0:00";
+                audioPreview.style.display = "none";
+                audioPreview.src = "";
+                voiceInput.value = "";
+                toggleBtn.textContent = "Start Recording";
+                toggleBtn.style.backgroundColor = "#4CAF50";
+            };
+
+            function updateTimer() {
+                if (!startTime) return;
+                const now = Date.now();
+                const diff = Math.floor((now - startTime) / 1000);
+                const minutes = Math.floor(diff / 60);
+                const seconds = diff % 60;
+                recordTimeEl.textContent = `${minutes}:${seconds < 10 ? "0" : ""}${seconds}`;
+                if (mediaRecorder && mediaRecorder.state === "recording") {
+                    setTimeout(updateTimer, 1000);
+                }
+            }
+        </script>
 
         <script>
             const resetBtn = document.getElementById("resetRecording");
@@ -362,39 +465,24 @@ if (!$result) {
             stopBtn.disabled = true;
             };
         </script>
-        </div>  <div class="form-row">
-        <div class="form-group">
-            <label for="client_name">Your Name <span class="required">*</span></label>
-            <input type="text" id="client_name" name="client_name" required>
-        </div>
-        <div class="form-group">
-            <label for="client_phone">Phone Number <span class="required">*</span></label>
-            <input type="text" id="client_phone" name="client_phone" required>
-        </div>
-        <div class="form-group">
-            <label for="client_email">Your Email </label>
-            <input type="email" id="client_email" name="client_email" >
-        </div>
-
-   
-    </div>
     <div class="form-group">
-            <label for="complaint_desc">Complaint Description </label>
+            <label for="complaint_desc">Complaint Description <span class="urdu-text">(براہِ کرم اپنی شکایت کی مکمل تفصیل درج کریں تاکہ ہم بہتر طریقے سے مسئلہ سمجھ سکیں اور اس کا حل نکال سکیں۔)</span></label>
             <textarea id="complaint_desc" name="complaint_desc" ></textarea>
         </div>
 
     <div class="form-row">
         <div class="form-group">
-            <label for="preferred_date">Incident Date</label>
+            <label for="preferred_date">Incident Date <span class="urdu-text">(براہِ کرم اس تاریخ کا اندراج کریں جس دن واقعہ پیش آیا تھا)</span></label>
           
             <input type="datetime-local" id="preferred_date" name="preferred_date" onclick="this.showPicker()">
 
         </div>
 
         <div class="form-group">
-            <label for="files">Upload Image</label>
+            <label for="files"><span class="urdu-text">آپ شکایت سے متعلقہ تصویر بھی اپلوڈ کر سکتے ہیں</span></label>
             <input type="file" id="files" name="files[]" multiple class="file-upload">
             <p class="file-hint">Upload JPG, PNG, PDF. Max 5MB each.</p>
+
         </div>
 
      
