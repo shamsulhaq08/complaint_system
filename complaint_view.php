@@ -96,6 +96,85 @@ $username = $admin_user['username'];
     margin: 0 4px;
     font-weight: bold;
 }
+
+/* Modal Background */
+.modal {
+    display: none; /* Hidden by default */
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(0,0,0,0.5); /* Black with opacity */
+}
+
+/* Modal Content Box */
+.modal-content {
+    background-color: #fff;
+    margin: 10% auto;
+    padding: 30px;
+    border: 1px solid #888;
+    width: 80%;
+    max-width: 600px;
+    border-radius: 8px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+    font-family: Arial, sans-serif;
+    color: #333;
+}
+
+/* Close Button */
+.close {
+    color: #aaa;
+    float: right;
+    font-size: 28px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: color 0.3s ease;
+}
+
+.close:hover,
+.close:focus {
+    color: #000;
+}
+
+/* Paragraphs inside modal */
+.modal-content p {
+    margin: 15px 0;
+    line-height: 1.5;
+}
+
+/* FontAwesome Icons */
+.modal-content i {
+    color: #007BFF;
+    margin-right: 8px;
+}
+
+.file-item {
+    margin-bottom: 15px;
+}
+
+.file-item img {
+    border: 2px solid #ddd;
+    border-radius: 5px;
+}
+
+.file-item audio {
+    width: 100%;
+    max-width: 300px;
+    margin-top: 10px;
+}
+
+.file-item a {
+    color: #007bff;
+    text-decoration: none;
+}
+
+.file-item a:hover {
+    text-decoration: underline;
+}
+
     </style>
 </head>
 <body>
@@ -148,7 +227,7 @@ if ($result->num_rows > 0) {
 
         echo "<p><i class='fa fa-user'></i> <strong>Customer Name:</strong> " . htmlspecialchars($row['client_name']) . " (" . htmlspecialchars($row['client_email']) . ")</p>";
         echo "<p><i class='fa fa-phone'></i> <strong>Phone:</strong> " . htmlspecialchars($row['client_phone']) . "</p>";
-        echo "<p><i class='fa fa-file-alt'></i> <strong>Description:</strong><br><br>" . nl2br(htmlspecialchars($row['complaint_desc'])) . "</p>";
+        echo "<p><i class='fa fa-file-alt'></i> <strong>Description:</strong>" . nl2br(htmlspecialchars($row['complaint_desc'])) . "</p>";
         echo "<p><i class='fa fa-calendar'></i> <strong>Incident Date:</strong> " . htmlspecialchars($row['preferred_date']) . "</p>";
      // Assigned Staff Names (from staff_ids column)
 $staff_ids_string = $row['staff_ids'];
@@ -160,36 +239,68 @@ if (!empty($staff_ids_string)) {
         $staff_sql = "SELECT name FROM staff WHERE id IN ($staff_ids_list)";
         $staff_result = $conn->query($staff_sql);
         if ($staff_result && $staff_result->num_rows > 0) {
-            echo "<p><strong>Assigned Staff:</strong><br>";
+            echo "<p><strong>Complaint Against :</strong><br>";
             while ($staff_row = $staff_result->fetch_assoc()) {
                 $staff_name = htmlspecialchars($staff_row['name']);
                 echo "<div style='margin-bottom: 5px;'>👤 $staff_name</div>";
             }
             echo "</p>";
         } else {
-            echo "<p><strong>Assigned Staff:</strong> Not found</p>";
+            echo "<p><strong>Complaint Against:</strong> Not found</p>";
         }
     } else {
-        echo "<p><strong>Assigned Staff:</strong> None</p>";
+        echo "<p><strong>Complaint Against Staff:</strong> None</p>";
     }
 } else {
-    echo "<p><strong>Assigned Staff:</strong> None</p>";
+    echo "<p><strong>Complaint Against Staff:</strong> None</p>";
 }
 
 
-        // Attached Files
-        $file_sql = "SELECT file_path FROM complaint_files WHERE complaint_id = $complaint_id";
-        $file_result = $conn->query($file_sql);
-        if ($file_result->num_rows > 0) {
-            echo "<p><strong>Attached Files:</strong><br>";
-            while ($file_row = $file_result->fetch_assoc()) {
-                $file = htmlspecialchars($file_row['file_path']);
-                echo "<a href='$file' target='_blank'>View File</a><br>";
-            }
-            echo "</p>";
-        }
+// Attached Files
+$file_sql = "SELECT file_path FROM complaint_files WHERE complaint_id = $complaint_id";
+$file_result = $conn->query($file_sql);
 
-        echo "</div></div>";
+if ($file_result->num_rows > 0) {
+    echo "<p><strong>Attached Files:</strong><br>";
+    while ($file_row = $file_result->fetch_assoc()) {
+        $file = htmlspecialchars($file_row['file_path']);
+        
+        // Get the file extension to check if it's an image or audio
+        $file_extension = strtolower(pathinfo($file, PATHINFO_EXTENSION));
+        
+        // Check if the file is an image
+        if (in_array($file_extension, ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'svg'])) {
+            echo "<div class='file-item'>
+                    <img src='$file' alt='Image' style='max-width: 200px; max-height: 200px;'><br>
+                    <a href='$file' target='_blank'>View Image</a>
+                  </div><br>";
+        }
+        // Check if the file is an audio file
+        elseif (in_array($file_extension, ['mp3', 'wav', 'ogg', 'aac'])) {
+            echo "<div class='file-item'>
+                    <audio id='audio-player' src='$file' type='audio/$file_extension'></audio>
+                    <div class='audio-controls'>
+                        <button class='play-btn' onclick='togglePlayPause()'>Play</button>
+                        <button class='pause-btn' onclick='pauseAudio()' style='display: none;'>Pause</button>
+                        <input type='range' class='seek-bar' value='0' max='100' onchange='setAudioTime()'>
+                        <label class='volume-label'>Volume</label>
+                        <input type='range' class='volume-bar' value='100' max='100' onchange='setVolume()'>
+                    </div><br>
+                    <a href='$file' target='_blank'>Listen to Audio</a>
+                  </div><br>";
+        }
+        // If it's another file type (e.g., pdf, doc), just display a link
+        else {
+            echo "<div class='file-item'>
+                    <a href='$file' target='_blank'>Listen to Audio</a>
+                  </div><br>";
+        }
+    }
+    echo "</p>";
+}
+echo "</div></div>";
+
+
     }
 
     // Pagination controls
@@ -219,6 +330,52 @@ window.onclick = function(event) {
         }
     });
 };
+</script>
+
+<script>
+    // JavaScript for custom audio controls
+    const audioPlayer = document.getElementById('audio-player');
+    const playButton = document.querySelector('.play-btn');
+    const pauseButton = document.querySelector('.pause-btn');
+    const seekBar = document.querySelector('.seek-bar');
+    const volumeBar = document.querySelector('.volume-bar');
+
+    // Toggle Play/Pause
+    function togglePlayPause() {
+        if (audioPlayer.paused) {
+            audioPlayer.play();
+            playButton.style.display = 'none';
+            pauseButton.style.display = 'inline-block';
+        } else {
+            audioPlayer.pause();
+            playButton.style.display = 'inline-block';
+            pauseButton.style.display = 'none';
+        }
+    }
+
+    // Pause audio
+    function pauseAudio() {
+        audioPlayer.pause();
+        playButton.style.display = 'inline-block';
+        pauseButton.style.display = 'none';
+    }
+
+    // Update seek bar
+    audioPlayer.addEventListener('timeupdate', () => {
+        const progress = (audioPlayer.currentTime / audioPlayer.duration) * 100;
+        seekBar.value = progress;
+    });
+
+    // Set audio time from seek bar
+    function setAudioTime() {
+        const newTime = (seekBar.value / 100) * audioPlayer.duration;
+        audioPlayer.currentTime = newTime;
+    }
+
+    // Set volume
+    function setVolume() {
+        audioPlayer.volume = volumeBar.value / 100;
+    }
 </script>
 
    

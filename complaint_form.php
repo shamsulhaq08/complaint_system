@@ -1,60 +1,28 @@
+
 <?php
-// Database connection
+// db connection
 include('db.php');
 
-// Function to insert complaint
+// Insert complaint
 function insertComplaint($conn, $staff_ids, $complaint_desc, $client_name, $client_email, $client_phone = null, $preferred_date = null) {
-    // Validate required fields
-    if (empty($complaint_desc)) {
-        throw new Exception("Complaint description is required");
-    }
-    if (empty($client_name)) {
-        throw new Exception("Client name is required");
-    }
- 
+    if (empty($complaint_desc)) throw new Exception("Complaint description is required");
+    if (empty($client_name)) throw new Exception("Client name is required");
 
-    // Prepare the SQL statement
-    $sql = "INSERT INTO complaints (
-            staff_ids, 
-            complaint_desc, 
-            client_name, 
-            client_email, 
-            client_phone, 
-            preferred_date
-        ) VALUES (?, ?, ?, ?, ?, ?)";
-
+    $sql = "INSERT INTO complaints (staff_ids, complaint_desc, client_name, client_email, client_phone, preferred_date) VALUES (?, ?, ?, ?, ?, ?)";
     $stmt = $conn->prepare($sql);
-    if (!$stmt) {
-        throw new Exception("Prepare failed: " . $conn->error);
-    }
+    if (!$stmt) throw new Exception("Prepare failed: " . $conn->error);
 
-    // Bind parameters
-    $stmt->bind_param(
-        "ssssss",
-        $staff_ids,
-        $complaint_desc,
-        $client_name,
-        $client_email,
-        $client_phone,
-        $preferred_date
-    );
+    $stmt->bind_param("ssssss", $staff_ids, $complaint_desc, $client_name, $client_email, $client_phone, $preferred_date);
+    if (!$stmt->execute()) throw new Exception("Execute failed: " . $stmt->error);
 
-    // Execute the statement
-    if (!$stmt->execute()) {
-        throw new Exception("Execute failed: " . $stmt->error);
-    }
-
-    // Return the inserted ID
     return $stmt->insert_id;
 }
 
-// Process form submission
 $message = '';
 $message_type = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     try {
-        // Get form data
         $staff_ids = implode(',', $_POST['staff_ids'] ?? []);
         $complaint_desc = $_POST['complaint_desc'] ?? '';
         $client_name = $_POST['client_name'] ?? '';
@@ -62,50 +30,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $client_phone = $_POST['client_phone'] ?? null;
         $preferred_date = $_POST['preferred_date'] ?? null;
 
+        $complaint_id = insertComplaint($conn, $staff_ids, $complaint_desc, $client_name, $client_email, $client_phone, $preferred_date);
 
-        // Insert complaint
-        $complaint_id = insertComplaint(
-            $conn,
-            $staff_ids,
-            $complaint_desc,
-            $client_name,
-            $client_email,
-            $client_phone,
-            $preferred_date
-           
-        );
+        $uploadDir = 'uploads/';
+        if (!is_dir($uploadDir)) mkdir($uploadDir, 0755, true);
 
-        // Handle file uploads
+        // Prepare statement for file insertion
+        $file_stmt = $conn->prepare("INSERT INTO complaint_files (complaint_id, file_path, file_type, uploaded_at) VALUES (?, ?, ?, NOW())");
+        if (!$file_stmt) throw new Exception("File insert prepare failed: " . $conn->error);
+
+        // Handle image/pdf files
         if (!empty($_FILES['files']['name'][0])) {
-            $uploadDir = 'uploads/';
-            if (!is_dir($uploadDir)) {
-                mkdir($uploadDir, 0755, true);
-            }
-
-            // Process each file
             foreach ($_FILES['files']['tmp_name'] as $key => $tmp_name) {
                 if ($_FILES['files']['error'][$key] === UPLOAD_ERR_OK) {
-                    // Validate file
                     $file_name = basename($_FILES['files']['name'][$key]);
                     $file_size = $_FILES['files']['size'][$key];
                     $file_type = $_FILES['files']['type'][$key];
                     $target_path = $uploadDir . uniqid() . '_' . $file_name;
 
-                    // Check file size (max 5MB)
-                    if ($file_size > 5000000) {
-                        throw new Exception("File $file_name is too large (max 5MB)");
-                    }
-
-                    // Check file type (images and PDFs)
                     $allowed_types = ['image/jpeg', 'image/png', 'image/gif', 'application/pdf'];
-                    if (!in_array($file_type, $allowed_types)) {
-                        throw new Exception("Invalid file type for $file_name. Only JPG, PNG, GIF, and PDF are allowed.");
-                    }
+                    if (!in_array($file_type, $allowed_types)) throw new Exception("Invalid file type for $file_name");
 
-                    // Move uploaded file
+                    if ($file_size > 5000000) throw new Exception("File $file_name is too large");
+
                     if (move_uploaded_file($tmp_name, $target_path)) {
                         $safe_path = $conn->real_escape_string($target_path);
-                        $conn->query("INSERT INTO complaint_files (complaint_id, file_path) VALUES ($complaint_id, '$safe_path')");
+                        $file_stmt->bind_param("iss", $complaint_id, $safe_path, $file_type);
+                        $file_stmt->execute();
                     } else {
                         throw new Exception("Failed to upload $file_name");
                     }
@@ -113,11 +64,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
 
+        // Handle voice file
+        if (isset($_FILES['voice_file']) && $_FILES['voice_file']['error'] === UPLOAD_ERR_OK) {
+            $file_name = basename($_FILES['voice_file']['name']);
+            $file_type = $_FILES['voice_file']['type'];
+            $file_size = $_FILES['voice_file']['size'];
+            $target_path = $uploadDir . uniqid() . '_' . $file_name;
+
+            $allowed_voice_types = ['audio/webm', 'audio/mpeg', 'audio/wav'];
+            if (!in_array($file_type, $allowed_voice_types)) throw new Exception("Invalid voice file type.");
+
+            if ($file_size > 10000000) throw new Exception("Voice file too large");
+
+            if (move_uploaded_file($_FILES['voice_file']['tmp_name'], $target_path)) {
+                $safe_path = $conn->real_escape_string($target_path);
+                $file_stmt->bind_param("iss", $complaint_id, $safe_path, $file_type);
+                $file_stmt->execute();
+            } else {
+                throw new Exception("Failed to upload voice file.");
+            }
+        }
+
         echo "<script>alert('Complaint submitted successfully!');</script>";
-       
         $message_type = 'success';
-        
-        // Clear form (optional)
         $_POST = [];
     } catch (Exception $e) {
         $message = "Error: " . $e->getMessage();
@@ -125,20 +94,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-// Fetch staff for the dropdown
-$staff_result = $conn->query("SELECT id, name FROM staff");
-$staff_members = [];
-if ($staff_result) {
-    $staff_members = $staff_result->fetch_all(MYSQLI_ASSOC);
-}
+// Staff fetch
+$staff_result = $conn->query("SELECT id, name, image FROM staff");
+if (!$staff_result) die("Query failed: " . $conn->error);
 ?>
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Submit Complaint</title>
-    <style>
+
+<style>
       body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     line-height: 1.6;
@@ -317,8 +278,17 @@ button[type="submit"]:hover {
 }
 
     </style>
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Submit Complaint</title>
+    
 </head>
 <body>
+
     
     
     <?php if ($message): ?>
@@ -336,7 +306,8 @@ if (!$result) {
 }
 ?>
 
-    <form method="POST" action="" enctype="multipart/form-data">
+<form method="POST" enctype="multipart/form-data">
+
     <h2>Submit a Complaint</h2>
         <div class="form-group">
             <label for="staff_ids" style="text-align: center;">Complaint Against (select one or more):</label>
@@ -361,8 +332,37 @@ if (!$result) {
         });
     </script>
         </div>
+        <h3 style="text-align: center;">Voice Recording</h3>
+        <p style="text-align: center; margin: -14px;">آپ اپنی شکایت آواز کے ساتھ بھی ریکارڈ کر سکتے ہیں۔</p>
+            <div id="recorder" style="text-align: center; margin-top: 20px;">
+                <button type="button" id="startRecording" style="background-color: #4CAF50; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer;">Start Recording</button>
+                <button type="button" id="stopRecording" disabled style="background-color: #f44336; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer;">Stop Recording</button>
+                <button type="button" id="resetRecording" style="background-color: #ff9800; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; margin-left: 10px;">Reset</button>
+                <div style="margin-top: 10px; font-size: 16px; font-weight: bold; color: #555;">
+                <span id="recordTime" style="display: inline-block; padding: 5px 10px; background-color: #e0e0e0; border-radius: 20px; min-width: 60px; text-align: center;">0:00</span>
+                </div>
+                <audio id="audioPreview" controls style="display:none; margin-top: 10px; width: 100%;"></audio>
+                <input type="file" name="voice_file" id="voiceFileInput" style="display: none;">
+            </div>
 
-        <div class="form-row">
+        <script>
+            const resetBtn = document.getElementById("resetRecording");
+
+            resetBtn.onclick = () => {
+            if (mediaRecorder && mediaRecorder.state === "recording") {
+                mediaRecorder.stop();
+            }
+            recordedChunks = [];
+            startTime = null;
+            recordTimeEl.textContent = "0:00";
+            audioPreview.style.display = "none";
+            audioPreview.src = "";
+            voiceInput.value = "";
+            startBtn.disabled = false;
+            stopBtn.disabled = true;
+            };
+        </script>
+        </div>  <div class="form-row">
         <div class="form-group">
             <label for="client_name">Your Name <span class="required">*</span></label>
             <input type="text" id="client_name" name="client_name" required>
@@ -387,7 +387,8 @@ if (!$result) {
         <div class="form-group">
             <label for="preferred_date">Incident Date</label>
           
-            <input type="datetime-local" id="preferred_date" name="preferred_date">
+            <input type="datetime-local" id="preferred_date" name="preferred_date" onclick="this.showPicker()">
+
         </div>
 
         <div class="form-group">
@@ -404,3 +405,72 @@ if (!$result) {
     </form>
 </body>
 </html>
+<script>
+let mediaRecorder;
+let recordedChunks = [];
+let startTime;
+const startBtn = document.getElementById("startRecording");
+const stopBtn = document.getElementById("stopRecording");
+const recordTimeEl = document.getElementById("recordTime");
+const audioPreview = document.getElementById("audioPreview");
+const voiceInput = document.getElementById("voiceFileInput");
+
+startBtn.onclick = async () => {
+    console.log("Start button clicked. Requesting microphone access...");
+
+    try {
+        // Request permission and start recording
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        console.log("Permission granted. Microphone access acquired.");
+
+        mediaRecorder = new MediaRecorder(stream);
+        recordedChunks = [];
+
+        mediaRecorder.ondataavailable = (e) => {
+            if (e.data.size > 0) recordedChunks.push(e.data);
+        };
+
+        mediaRecorder.onstop = () => {
+            const blob = new Blob(recordedChunks, { type: "audio/webm" });
+            const audioURL = URL.createObjectURL(blob);
+            audioPreview.src = audioURL;
+            audioPreview.style.display = "block";
+
+            // Convert blob to File and set to file input
+            const file = new File([blob], "voice_recording.webm", { type: "audio/webm" });
+            const dataTransfer = new DataTransfer();
+            dataTransfer.items.add(file);
+            voiceInput.files = dataTransfer.files;
+        };
+
+        mediaRecorder.start();
+        startBtn.disabled = true;
+        stopBtn.disabled = false;
+        startTime = Date.now();
+        updateTimer();
+    } catch (err) {
+        console.error("Permission denied or error occurred: ", err);
+        alert("Microphone permission denied or an error occurred. Please allow microphone access.");
+        startBtn.disabled = false;
+    }
+};
+
+stopBtn.onclick = () => {
+    mediaRecorder.stop();
+    startBtn.disabled = false;
+    stopBtn.disabled = true;
+};
+
+// Timer for display
+function updateTimer() {
+    if (!startTime) return;
+    const now = Date.now();
+    const diff = Math.floor((now - startTime) / 1000);
+    const minutes = Math.floor(diff / 60);
+    const seconds = diff % 60;
+    recordTimeEl.textContent = `${minutes}:${seconds < 10 ? "0" : ""}${seconds}`;
+    if (mediaRecorder && mediaRecorder.state === "recording") {
+        setTimeout(updateTimer, 1000);
+    }
+}
+</script>

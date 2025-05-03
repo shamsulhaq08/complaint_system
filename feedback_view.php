@@ -122,12 +122,12 @@ $username = $admin_user['username'];
     <div class="modal-content">
         <span class="close">&times;</span>
         <h2>Feedback Details</h2>
-        <p><strong>Name:</strong> <span id="modalName"></span></p>
-        <p><strong>Email:</strong> <span id="modalEmail"></span></p>
-        <p><strong>Whatsapp:</strong> <span id="modalPhone"></span></p>
-        <p><strong>Title:</strong> <span id="modalTitle"></span></p>
-        <p><strong>Description:</strong> <span id="modalDesc"></span></p>
-        <p><strong>Submitted At:</strong> <span id="modalSubmitted"></span></p>
+        <p><strong><i class="fas fa-user"></i> Name:</strong> <span id="modalName"></span></p>
+        <p><strong><i class="fas fa-envelope"></i> Email:</strong> <span id="modalEmail"></span></p>
+        <p><strong><i class="fas fa-phone"></i> Whatsapp:</strong> <span id="modalPhone"></span></p>
+        <p><strong><i class="fas fa-tag"></i> Title:</strong> <span id="modalTitle"></span></p>
+        <p><strong><i class="fas fa-align-left"></i> Description:</strong> <span id="modalDesc"></span></p>
+        <p><strong><i class="fas fa-clock"></i> Submitted At:</strong> <span id="modalSubmitted"></span></p>
     </div>
 </div>
 
