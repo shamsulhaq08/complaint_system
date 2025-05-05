@@ -17,7 +17,7 @@ h1 {
 /* Form container styling */
 form {
     max-width: 900px;
-    margin: 40px auto;
+    margin: 10px auto;
     padding: 20px;
     background-color: #fff;
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);

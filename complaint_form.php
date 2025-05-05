@@ -84,8 +84,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 throw new Exception("Failed to upload voice file.");
             }
         }
-
-        echo "<script>alert('Complaint submitted successfully!');</script>";
+        echo "<script>alert('Complaint submitted successfully!'); window.location.href = 'index.php';</script>";
         $message_type = 'success';
         $_POST = [];
     } catch (Exception $e) {
@@ -368,87 +367,9 @@ if (!$result) {
             <input type="file" name="voice_file" id="voiceFileInput" style="display: none;">
         </div>
 
-        <script>
-            let mediaRecorder;
-            let recordedChunks = [];
-            let startTime;
-            const toggleBtn = document.getElementById("toggleRecording");
-            const resetBtn = document.getElementById("resetRecording");
-            const recordTimeEl = document.getElementById("recordTime");
-            const audioPreview = document.getElementById("audioPreview");
-            const voiceInput = document.getElementById("voiceFileInput");
+     
 
-            toggleBtn.onclick = async () => {
-                if (toggleBtn.textContent === "Start Recording") {
-                    console.log("Start button clicked. Requesting microphone access...");
-
-                    try {
-                        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                        console.log("Permission granted. Microphone access acquired.");
-
-                        mediaRecorder = new MediaRecorder(stream);
-                        recordedChunks = [];
-
-                        mediaRecorder.ondataavailable = (e) => {
-                            if (e.data.size > 0) recordedChunks.push(e.data);
-                        };
-
-                        mediaRecorder.onstop = () => {
-                            const blob = new Blob(recordedChunks, { type: "audio/webm" });
-                            const audioURL = URL.createObjectURL(blob);
-                            audioPreview.src = audioURL;
-                            audioPreview.style.display = "block";
-
-                            const file = new File([blob], "voice_recording.webm", { type: "audio/webm" });
-                            const dataTransfer = new DataTransfer();
-                            dataTransfer.items.add(file);
-                            voiceInput.files = dataTransfer.files;
-                        };
-
-                        mediaRecorder.start();
-                        toggleBtn.textContent = "Stop Recording";
-                        toggleBtn.style.backgroundColor = "#f44336";
-                        startTime = Date.now();
-                        updateTimer();
-                    } catch (err) {
-                        console.error("Permission denied or error occurred: ", err);
-                        alert("Microphone permission denied or an error occurred. Please allow microphone access.");
-                    }
-                } else {
-                    mediaRecorder.stop();
-                    toggleBtn.textContent = "Start Recording";
-                    toggleBtn.style.backgroundColor = "#4CAF50";
-                }
-            };
-
-            resetBtn.onclick = () => {
-                if (mediaRecorder && mediaRecorder.state === "recording") {
-                    mediaRecorder.stop();
-                }
-                recordedChunks = [];
-                startTime = null;
-                recordTimeEl.textContent = "0:00";
-                audioPreview.style.display = "none";
-                audioPreview.src = "";
-                voiceInput.value = "";
-                toggleBtn.textContent = "Start Recording";
-                toggleBtn.style.backgroundColor = "#4CAF50";
-            };
-
-            function updateTimer() {
-                if (!startTime) return;
-                const now = Date.now();
-                const diff = Math.floor((now - startTime) / 1000);
-                const minutes = Math.floor(diff / 60);
-                const seconds = diff % 60;
-                recordTimeEl.textContent = `${minutes}:${seconds < 10 ? "0" : ""}${seconds}`;
-                if (mediaRecorder && mediaRecorder.state === "recording") {
-                    setTimeout(updateTimer, 1000);
-                }
-            }
-        </script>
-
-        <script>
+        <!-- <script>
             const resetBtn = document.getElementById("resetRecording");
 
             resetBtn.onclick = () => {
@@ -464,7 +385,7 @@ if (!$result) {
             startBtn.disabled = false;
             stopBtn.disabled = true;
             };
-        </script>
+        </script> -->
     <div class="form-group">
             <label for="complaint_desc">Complaint Description <span class="urdu-text">(براہِ کرم اپنی شکایت کی مکمل تفصیل درج کریں تاکہ ہم بہتر طریقے سے مسئلہ سمجھ سکیں اور اس کا حل نکال سکیں۔)</span></label>
             <textarea id="complaint_desc" name="complaint_desc" ></textarea>
@@ -494,71 +415,144 @@ if (!$result) {
 </body>
 </html>
 <script>
-let mediaRecorder;
-let recordedChunks = [];
-let startTime;
-const startBtn = document.getElementById("startRecording");
-const stopBtn = document.getElementById("stopRecording");
-const recordTimeEl = document.getElementById("recordTime");
-const audioPreview = document.getElementById("audioPreview");
-const voiceInput = document.getElementById("voiceFileInput");
+(function() {
+    // --- Toggle Button Recording Logic ---
+    let mediaRecorder;
+    let recordedChunks = [];
+    let startTime;
+    const toggleBtn = document.getElementById("toggleRecording");
+    const resetBtn = document.getElementById("resetRecording");
+    const recordTimeEl = document.getElementById("recordTime");
+    const audioPreview = document.getElementById("audioPreview");
+    const voiceInput = document.getElementById("voiceFileInput");
 
-startBtn.onclick = async () => {
-    console.log("Start button clicked. Requesting microphone access...");
+    toggleBtn.onclick = async () => {
+        if (toggleBtn.textContent === "Start Recording") {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                mediaRecorder = new MediaRecorder(stream);
+                recordedChunks = [];
 
-    try {
-        // Request permission and start recording
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        console.log("Permission granted. Microphone access acquired.");
+                mediaRecorder.ondataavailable = (e) => {
+                    if (e.data.size > 0) recordedChunks.push(e.data);
+                };
 
-        mediaRecorder = new MediaRecorder(stream);
+                mediaRecorder.onstop = () => {
+                    const blob = new Blob(recordedChunks, { type: "audio/webm" });
+                    const audioURL = URL.createObjectURL(blob);
+                    audioPreview.src = audioURL;
+                    audioPreview.style.display = "block";
+
+                    const file = new File([blob], "voice_recording.webm", { type: "audio/webm" });
+                    const dataTransfer = new DataTransfer();
+                    dataTransfer.items.add(file);
+                    voiceInput.files = dataTransfer.files;
+                };
+
+                mediaRecorder.start();
+                toggleBtn.textContent = "Stop Recording";
+                toggleBtn.style.backgroundColor = "#f44336";
+                startTime = Date.now();
+                updateTimer();
+            } catch (err) {
+                console.error("Permission denied or error occurred: ", err);
+                alert("Microphone permission denied or an error occurred. Please allow microphone access.");
+            }
+        } else {
+            mediaRecorder.stop();
+            toggleBtn.textContent = "Start Recording";
+            toggleBtn.style.backgroundColor = "#4CAF50";
+        }
+    };
+
+    resetBtn.onclick = () => {
+        if (mediaRecorder && mediaRecorder.state === "recording") {
+            mediaRecorder.stop();
+        }
         recordedChunks = [];
+        startTime = null;
+        recordTimeEl.textContent = "0:00";
+        audioPreview.style.display = "none";
+        audioPreview.src = "";
+        voiceInput.value = "";
+        toggleBtn.textContent = "Start Recording";
+        toggleBtn.style.backgroundColor = "#4CAF50";
+    };
 
-        mediaRecorder.ondataavailable = (e) => {
-            if (e.data.size > 0) recordedChunks.push(e.data);
-        };
+    function updateTimer() {
+        if (!startTime) return;
+        const now = Date.now();
+        const diff = Math.floor((now - startTime) / 1000);
+        const minutes = Math.floor(diff / 60);
+        const seconds = diff % 60;
+        recordTimeEl.textContent = `${minutes}:${seconds < 10 ? "0" : ""}${seconds}`;
+        if (mediaRecorder && mediaRecorder.state === "recording") {
+            setTimeout(updateTimer, 1000);
+        }
+    }
+})();
 
-        mediaRecorder.onstop = () => {
-            const blob = new Blob(recordedChunks, { type: "audio/webm" });
-            const audioURL = URL.createObjectURL(blob);
-            audioPreview.src = audioURL;
-            audioPreview.style.display = "block";
+(function() {
+    // --- Start/Stop Button Recording Logic ---
+    let mediaRecorder;
+    let recordedChunks = [];
+    let startTime;
+    const startBtn = document.getElementById("startRecording");
+    const stopBtn = document.getElementById("stopRecording");
+    const recordTimeEl = document.getElementById("recordTime");
+    const audioPreview = document.getElementById("audioPreview");
+    const voiceInput = document.getElementById("voiceFileInput");
 
-            // Convert blob to File and set to file input
-            const file = new File([blob], "voice_recording.webm", { type: "audio/webm" });
-            const dataTransfer = new DataTransfer();
-            dataTransfer.items.add(file);
-            voiceInput.files = dataTransfer.files;
-        };
+    startBtn.onclick = async () => {
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            mediaRecorder = new MediaRecorder(stream);
+            recordedChunks = [];
 
-        mediaRecorder.start();
-        startBtn.disabled = true;
-        stopBtn.disabled = false;
-        startTime = Date.now();
-        updateTimer();
-    } catch (err) {
-        console.error("Permission denied or error occurred: ", err);
-        alert("Microphone permission denied or an error occurred. Please allow microphone access.");
+            mediaRecorder.ondataavailable = (e) => {
+                if (e.data.size > 0) recordedChunks.push(e.data);
+            };
+
+            mediaRecorder.onstop = () => {
+                const blob = new Blob(recordedChunks, { type: "audio/webm" });
+                const audioURL = URL.createObjectURL(blob);
+                audioPreview.src = audioURL;
+                audioPreview.style.display = "block";
+
+                const file = new File([blob], "voice_recording.webm", { type: "audio/webm" });
+                const dataTransfer = new DataTransfer();
+                dataTransfer.items.add(file);
+                voiceInput.files = dataTransfer.files;
+            };
+
+            mediaRecorder.start();
+            startBtn.disabled = true;
+            stopBtn.disabled = false;
+            startTime = Date.now();
+            updateTimer();
+        } catch (err) {
+            console.error("Permission denied or error occurred: ", err);
+            alert("Microphone permission denied or an error occurred. Please allow microphone access.");
+            startBtn.disabled = false;
+        }
+    };
+
+    stopBtn.onclick = () => {
+        mediaRecorder.stop();
         startBtn.disabled = false;
-    }
-};
+        stopBtn.disabled = true;
+    };
 
-stopBtn.onclick = () => {
-    mediaRecorder.stop();
-    startBtn.disabled = false;
-    stopBtn.disabled = true;
-};
-
-// Timer for display
-function updateTimer() {
-    if (!startTime) return;
-    const now = Date.now();
-    const diff = Math.floor((now - startTime) / 1000);
-    const minutes = Math.floor(diff / 60);
-    const seconds = diff % 60;
-    recordTimeEl.textContent = `${minutes}:${seconds < 10 ? "0" : ""}${seconds}`;
-    if (mediaRecorder && mediaRecorder.state === "recording") {
-        setTimeout(updateTimer, 1000);
+    function updateTimer() {
+        if (!startTime) return;
+        const now = Date.now();
+        const diff = Math.floor((now - startTime) / 1000);
+        const minutes = Math.floor(diff / 60);
+        const seconds = diff % 60;
+        recordTimeEl.textContent = `${minutes}:${seconds < 10 ? "0" : ""}${seconds}`;
+        if (mediaRecorder && mediaRecorder.state === "recording") {
+            setTimeout(updateTimer, 1000);
+        }
     }
-}
+})();
 </script>
