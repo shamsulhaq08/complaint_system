@@ -15,7 +15,7 @@ if ($conn->connect_error) {
 }
 
 $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
-$complaints_per_page = 8;
+$complaints_per_page = 6;
 $offset = ($page - 1) * $complaints_per_page;
 
 $total_sql = "SELECT COUNT(*) AS total FROM complaints";
@@ -214,6 +214,37 @@ button, .action-buttons a {
     display: inline-block;
     transition: background-color 0.3s;
 }
+.complaint-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.complaint-table th {
+    background-color: #374151;
+    color: white;
+    text-align: left;
+    padding: 12px;
+}
+
+.complaint-table td {
+    padding: 12px;
+    background-color: white;
+    border-top: 1px solid #ddd;
+}
+
+.status-label {
+    color: white;
+    padding: 5px 10px;
+    border-radius: 4px;
+    font-weight: bold;
+    display: inline-block;
+}
+
+
 </style>
 <div class="admin-wrapper">
     <aside class="admin-sidebar">
@@ -223,9 +254,22 @@ button, .action-buttons a {
         <div class="admin-header">
         <div class="container">
             <h1>Complaint List</h1>
+            <?php
+// Assuming $conn and $result are already available from earlier code
 
-<?php
 if ($result->num_rows > 0) {
+    echo "<table class='complaint-table'>";
+    echo "<thead><tr>
+    <th>Customer</th>
+    <th>Incident Date</th>
+    <th>Description</th>
+    <th>Phone</th>
+    <th>Staff</th>
+    <th>Audio</th>
+    <th>Image</th>
+    <th>Status</th>
+  </tr></thead><tbody>";
+
     while ($row = $result->fetch_assoc()) {
         $complaint_id = $row['id'];
         $modal_id = "modal_" . $complaint_id;
@@ -235,96 +279,134 @@ if ($result->num_rows > 0) {
         elseif ($status == 'Working') $badge_color = 'blue';
         elseif ($status == 'Completed') $badge_color = 'green';
 
-        echo "<div class='complaint-box' onclick=\"document.getElementById('$modal_id').style.display='block'\">";
-        echo "<i class='fa fa-user'></i> Customer Name: <strong>" . htmlspecialchars($row['client_name']) . "</strong> &nbsp;&nbsp;&nbsp;";
-        echo "<i class='fa fa-calendar'></i> Incident Date: <strong>" . htmlspecialchars($row['preferred_date']) . "</strong> &nbsp;&nbsp;&nbsp;";
-        echo "<i class='fa fa-book'></i> Status: <strong style='color:#ed7f00'>" . htmlspecialchars($row['status']) . "</strong><br>";
-        echo "</div>";
-
-        echo "<div id='$modal_id' class='modal'>";
-        echo "<div class='modal-content'>";
-
-        echo "  <div class='status-buttons' data-complaint-id='" . $row['id'] . "'> <strong>Status:</strong> ";
-        $statuses = ['Pending', 'Working', 'Completed'];
-        foreach ($statuses as $s) {
-            $button_style = ($status == $s) ? "style='background-color:#00a100; color:white;'" : "";
-            echo "<button class='status-btn' data-status='$s' $button_style>$s</button> ";
-        }
-        echo "<span class='status-msg' style='margin-left: 10px; color: green;'></span>";
-        echo "</div>";
-        
-                
-        
-        echo "<span class='close' onclick=\"document.getElementById('$modal_id').style.display='none'\" style='font-size: 24px; font-weight: bold; color: #ff0000; position: absolute; top: 10px; right: 15px; cursor: pointer;'>&times;</span>";
-
-        echo "<p><i class='fa fa-user'></i> <strong>Customer Name:</strong> " . htmlspecialchars($row['client_name']) . " (" . htmlspecialchars($row['client_email']) . ")</p>";
-        echo "<p><i class='fa fa-phone'></i> <strong>Phone:</strong> " . htmlspecialchars($row['client_phone']) . "</p>";
-        echo "<p><i class='fa fa-file-alt'></i> <strong>Description:</strong>" . nl2br(htmlspecialchars($row['complaint_desc'])) . "</p>";
-        echo "<p><i class='fa fa-calendar'></i> <strong>Incident Date:</strong> " . htmlspecialchars($row['preferred_date']) . "</p>";
-
-
-        // Staff names
+        // Fetch staff names
+        $staff_names = "None";
         $staff_ids_string = $row['staff_ids'];
         if (!empty($staff_ids_string)) {
             $staff_ids_array = array_filter(array_map('intval', explode(',', $staff_ids_string)));
-            if (count($staff_ids_array) > 0) {
+            if (!empty($staff_ids_array)) {
                 $staff_ids_list = implode(',', $staff_ids_array);
                 $staff_sql = "SELECT name FROM staff WHERE id IN ($staff_ids_list)";
                 $staff_result = $conn->query($staff_sql);
                 if ($staff_result && $staff_result->num_rows > 0) {
-                    echo "<p><strong>Complaint Against :</strong><br>";
+                    $staff_names_array = [];
                     while ($staff_row = $staff_result->fetch_assoc()) {
-                        $staff_name = htmlspecialchars($staff_row['name']);
-                        echo "<div style='margin-bottom: 5px;'>👤 $staff_name</div>";
+                        $staff_names_array[] = htmlspecialchars($staff_row['name']);
                     }
-                    echo "</p>";
-                } else {
-                    echo "<p><strong>Complaint Against:</strong> Not found</p>";
-                }
-            } else {
-                echo "<p><strong>Complaint Against Staff:</strong> None</p>";
-            }
-        } else {
-            echo "<p><strong>Complaint Against Staff:</strong> None</p>";
-        }
-
-        // Files
-        $file_sql = "SELECT file_path FROM complaint_files WHERE complaint_id = $complaint_id";
-        $file_result = $conn->query($file_sql);
-
-        if ($file_result->num_rows > 0) {
-            echo "<p><strong>Attached Files:</strong><br>";
-            while ($file_row = $file_result->fetch_assoc()) {
-                $file = htmlspecialchars($file_row['file_path']);
-                $file_extension = strtolower(pathinfo($file, PATHINFO_EXTENSION));
-                if (in_array($file_extension, ['jpg', 'jpeg', 'png', 'gif'])) {
-                    echo "<img src='$file' style='max-width: 200px;'><br><a href='$file' target='_blank'>View Image</a><br>";
-                } elseif (in_array($file_extension, ['mp3', 'wav'])) {
-                    echo "<audio controls src='$file'></audio><br><a href='$file' target='_blank'>Listen</a><br>";
-                } else {
-                    echo "<a href='$file' target='_blank'>Listen Customer Voice</a><br>";
+                    $staff_names = implode(', ', $staff_names_array);
                 }
             }
-            echo "</p>";
         }
 
-        echo "</div></div>";
+        // Fetch audio file
+        $audio_sql = "SELECT file_path FROM complaint_files WHERE complaint_id = $complaint_id AND (file_path LIKE '%.mp3' OR file_path LIKE '%.webm')";
+        $audio_result = $conn->query($audio_sql);
+        $audio_link = "None";
+        if ($audio_result && $audio_result->num_rows > 0) {
+            $audio_row = $audio_result->fetch_assoc();
+            $audio_file = htmlspecialchars($audio_row['file_path']);
+            $audio_link = "<audio controls src='$audio_file'></audio>";
+        }
+
+        
+
+        // Table row
+        echo "<tr onclick=\"openModal('$modal_id')\">";
+        echo "<td>" . htmlspecialchars($row['client_name']) . "</td>";
+        echo "<td>" . htmlspecialchars($row['preferred_date']) . "</td>";
+        echo "<td>" . htmlspecialchars($row['complaint_desc']) . "</td>";
+        echo "<td>" . htmlspecialchars($row['client_phone']) . "</td>";
+        echo "<td>" . $staff_names . "</td>";
+        echo "<td>" . $audio_link . "</td>";
+           // Image Thumbnail (first image only)
+           $img_thumb = "None";
+           $thumb_sql = "SELECT file_path FROM complaint_files WHERE complaint_id = $complaint_id";
+           $thumb_result = $conn->query($thumb_sql);
+           if ($thumb_result && $thumb_result->num_rows > 0) {
+               while ($thumb_row = $thumb_result->fetch_assoc()) {
+                   $file = htmlspecialchars($thumb_row['file_path']);
+                   $ext = strtolower(pathinfo($file, PATHINFO_EXTENSION));
+                   if (in_array($ext, ['jpg', 'jpeg', 'png', 'gif'])) {
+                       $img_thumb = "<a href='$file' target='_blank'><img src='$file' style='max-height:50px; max-width:50px; border-radius:5px;'></a>";
+                       break; // Show only the first image
+                   }
+               }
+           }
+           echo "<td>$img_thumb</td>";
+        echo "<td><span class='status-label' style='background-color: $badge_color;'>" . $status . "</span></td>";
+        echo "</tr>";
+
+        // Modal
+        echo "<div id='$modal_id' class='modal' style='display:none; position:fixed; top:0; left:0; width:100%; height:100%; background-color: rgba(0,0,0,0.5);'>";
+        echo "<div class='modal-content' style='background:white; margin:10% auto; padding:20px; position:relative; width:60%; border-radius:10px;'>";
+
+        // Close button
+        echo "<span class='close' onclick=\"closeModal('$modal_id')\" style='font-size: 24px; font-weight: bold; color: #ff0000; position: absolute; top: 10px; right: 15px; cursor: pointer;'>&times;</span>";
+
+        // Modal Content
+        echo "<p><strong><i class='fas fa-user'></i> Customer Name:</strong> " . htmlspecialchars($row['client_name']) . " (" . htmlspecialchars($row['client_email']) . ")</p>";
+        echo "<p><strong><i class='fas fa-phone'></i> Phone:</strong> " . htmlspecialchars($row['client_phone']) . "</p>";
+        echo "<p><strong><i class='fas fa-align-left'></i> Description:</strong> " . nl2br(htmlspecialchars($row['complaint_desc'])) . "</p>";
+        echo "<p><strong><i class='fas fa-calendar-alt'></i> Incident Date:</strong> " . htmlspecialchars($row['preferred_date']) . "</p>";
+        echo "<p><strong><i class='fas fa-user-tie'></i> Complaint Against:</strong> " . $staff_names . "</p>";
+        echo "<p><strong><i class='fas fa-info-circle'></i> Status:</strong> <span style='color:$badge_color;'>$status</span></p>";
+
+        // Status Change Form
+        echo "<form method='post' action='update_status.php' style='margin-top:10px; margin: 0; padding: 0;'> 
+        <input type='hidden' name='complaint_id' value='$complaint_id'>";
+        
+        $statuses = ['Pending' => 'orange', 'Working' => 'blue', 'Completed' => 'green'];
+        
+        foreach ($statuses as $s => $color) {
+        $active_style = $s === $status 
+            ? "background-color: $color; color: white; font-weight: bold;" 
+            : "background-color: lightgray; color: black;";
+        echo "<button type='submit' name='status' value='$s' style='margin-right:5px; padding:5px 10px; border:none; border-radius:5px; $active_style'>$s</button>";
+        }
+    echo "</form>";
+    
+
+        echo "</div></div>"; // Close modal content and modal
     }
 
-    echo "<div class='pagination' style='margin-top: 20px; text-align:center;'>";
-    if ($page > 1) {
-        echo "<a href='?page=" . ($page - 1) . "'>&laquo; Prev</a> ";
-    }
-    echo "<span> Page $page of $total_pages </span>";
-    if ($page < $total_pages) {
-        echo " <a href='?page=" . ($page + 1) . "'>Next &raquo;</a>";
-    }
-    echo "</div>";
+    echo "</tbody></table>";
 } else {
     echo "<p>No complaints found.</p>";
 }
+
 $conn->close();
 ?>
+
+<!-- JavaScript for modal functionality -->
+<script>
+    // Open modal
+    function openModal(modalId) {
+        document.getElementById(modalId).style.display = "block";
+    }
+
+    // Close modal
+    function closeModal(modalId) {
+        document.getElementById(modalId).style.display = "none";
+    }
+
+    // Close modal when clicking anywhere outside the modal content
+    window.onclick = function(event) {
+        var modals = document.querySelectorAll('.modal');
+        modals.forEach(function(modal) {
+            if (event.target === modal) {
+                modal.style.display = "none";
+            }
+        });
+    }
+</script>
+
+<!-- Pagination -->
+<div class="pagination" style="margin-top: 20px; text-align:center;">
+    <?php if ($page > 1) { echo "<a href='?page=" . ($page - 1) . "'>&laquo; Prev</a> "; } ?>
+    <span> Page <?php echo $page; ?> of <?php echo $total_pages; ?> </span>
+    <?php if ($page < $total_pages) { echo " <a href='?page=" . ($page + 1) . "'>Next &raquo;</a>"; } ?>
+</div>
+
 
 <script>
 document.querySelectorAll('.status-buttons').forEach(group => {
