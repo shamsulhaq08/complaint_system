@@ -66,7 +66,7 @@ $result = $conn->query($sql);
 .modal-content {
     background-color: #fff;
     margin: 10% auto;
-    padding: 10px;
+    padding: 2px;
     border-radius: 6px;
     width: 80%;
     max-width: 700px;
@@ -124,7 +124,7 @@ background-color: rgba(0,0,0,0.5); /* Black with opacity */
 .modal-content {
 background-color: #fff;
 margin: 10% auto;
-padding: 30px;
+padding: 10px;
 border: 1px solid #888;
 width: 80%;
 max-width: 600px;
@@ -200,6 +200,20 @@ form button:hover {
     background-color: #218838;
 }
 
+button, .action-buttons a {
+    background-color:rgb(116, 116, 116);
+    color: white;
+    padding: 12px 20px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 600;
+    text-decoration: none;
+    box-sizing: border-box;
+    display: inline-block;
+    transition: background-color 0.3s;
+}
 </style>
 <div class="admin-wrapper">
     <aside class="admin-sidebar">
@@ -224,16 +238,16 @@ if ($result->num_rows > 0) {
         echo "<div class='complaint-box' onclick=\"document.getElementById('$modal_id').style.display='block'\">";
         echo "<i class='fa fa-user'></i> Customer Name: <strong>" . htmlspecialchars($row['client_name']) . "</strong> &nbsp;&nbsp;&nbsp;";
         echo "<i class='fa fa-calendar'></i> Incident Date: <strong>" . htmlspecialchars($row['preferred_date']) . "</strong> &nbsp;&nbsp;&nbsp;";
-        echo "<i class='fa fa-book'></i> Status: <strong>" . htmlspecialchars($row['status']) . "</strong><br>";
+        echo "<i class='fa fa-book'></i> Status: <strong style='color:#ed7f00'>" . htmlspecialchars($row['status']) . "</strong><br>";
         echo "</div>";
 
         echo "<div id='$modal_id' class='modal'>";
         echo "<div class='modal-content'>";
 
-        echo "<div class='status-buttons' data-complaint-id='" . $row['id'] . "'>";
+        echo "  <div class='status-buttons' data-complaint-id='" . $row['id'] . "'> <strong>Status:</strong> ";
         $statuses = ['Pending', 'Working', 'Completed'];
         foreach ($statuses as $s) {
-            $button_style = ($status == $s) ? "style='background-color:#444; color:white;'" : "";
+            $button_style = ($status == $s) ? "style='background-color:#00a100; color:white;'" : "";
             echo "<button class='status-btn' data-status='$s' $button_style>$s</button> ";
         }
         echo "<span class='status-msg' style='margin-left: 10px; color: green;'></span>";
@@ -241,7 +255,7 @@ if ($result->num_rows > 0) {
         
                 
         
-        echo "<span class='close' onclick=\"document.getElementById('$modal_id').style.display='none'\">&times;</span>";
+        echo "<span class='close' onclick=\"document.getElementById('$modal_id').style.display='none'\" style='font-size: 24px; font-weight: bold; color: #ff0000; position: absolute; top: 10px; right: 15px; cursor: pointer;'>&times;</span>";
 
         echo "<p><i class='fa fa-user'></i> <strong>Customer Name:</strong> " . htmlspecialchars($row['client_name']) . " (" . htmlspecialchars($row['client_email']) . ")</p>";
         echo "<p><i class='fa fa-phone'></i> <strong>Phone:</strong> " . htmlspecialchars($row['client_phone']) . "</p>";
@@ -313,7 +327,6 @@ $conn->close();
 ?>
 
 <script>
-
 document.querySelectorAll('.status-buttons').forEach(group => {
     const buttons = group.querySelectorAll('.status-btn');
     const complaintId = group.getAttribute('data-complaint-id');
@@ -342,6 +355,11 @@ document.querySelectorAll('.status-buttons').forEach(group => {
                     // Show confirmation
                     statusMsg.textContent = "Status updated!";
                     setTimeout(() => statusMsg.textContent = '', 3000);
+
+                    // Refresh the page after 300ms
+                    setTimeout(() => {
+                        location.reload();
+                    }, 300);
                 } else {
                     statusMsg.textContent = "Failed to update.";
                 }
@@ -358,6 +376,15 @@ window.onclick = function(event) {
         }
     });
 };
+
+// Handle close button click (×) - no page refresh here
+document.querySelectorAll('.modal .close').forEach(closeBtn => {
+    closeBtn.addEventListener('click', () => {
+        const modal = closeBtn.closest('.modal');
+        modal.style.display = "none";
+    });
+});
+
 </script>
 </main>
 </div>
