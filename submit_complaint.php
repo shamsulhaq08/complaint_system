@@ -23,9 +23,8 @@ if (empty($client_name) || empty($client_email) || empty($complaint_title)) {
     die("Required fields are missing");
 }
 
-// Insert complaint into DB
-$stmt = $conn->prepare("INSERT INTO complaints (client_name, client_email, client_phone, complaint_title, complaint_desc, category, urgency, preferred_date)
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+$stmt = $conn->prepare("INSERT INTO complaints (client_name, client_email, client_phone, complaint_title, complaint_desc, category, urgency, preferred_date, created_at)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())");
 $stmt->bind_param("ssssssss", $client_name, $client_email, $client_phone, $complaint_title, $complaint_desc, $category, $urgency, $preferred_date);
 $stmt->execute();
 $complaint_id = $stmt->insert_id;

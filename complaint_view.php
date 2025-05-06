@@ -37,7 +37,6 @@ $result = $conn->query($sql);
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 </head>
 <body>
-
 <style>
 
 .complaint-box {
@@ -246,6 +245,7 @@ button, .action-buttons a {
 
 
 </style>
+
 <div class="admin-wrapper">
     <aside class="admin-sidebar">
         <?php include 'sidebar.php'; ?>
@@ -260,15 +260,15 @@ button, .action-buttons a {
 if ($result->num_rows > 0) {
     echo "<table class='complaint-table'>";
     echo "<thead><tr>
-    <th>Customer</th>
-    <th>Incident Date</th>
-    <th>Description</th>
-    <th>Phone</th>
-    <th>Staff</th>
-    <th>Audio</th>
-    <th>Image</th>
-    <th>Status</th>
-  </tr></thead><tbody>";
+        <th>Customer</th>
+        <th>Incident Date</th>
+        <th>Description</th>
+        <th>Phone</th>
+        <th>Staff</th>
+        <th>Audio</th>
+        <th>Image</th>
+        <th>Status</th>
+    </tr></thead><tbody>";
 
     while ($row = $result->fetch_assoc()) {
         $complaint_id = $row['id'];
@@ -308,9 +308,22 @@ if ($result->num_rows > 0) {
             $audio_link = "<audio controls src='$audio_file'></audio>";
         }
 
-        
+        // Image thumbnail
+        $img_thumb = "None";
+        $thumb_sql = "SELECT file_path FROM complaint_files WHERE complaint_id = $complaint_id";
+        $thumb_result = $conn->query($thumb_sql);
+        if ($thumb_result && $thumb_result->num_rows > 0) {
+            while ($thumb_row = $thumb_result->fetch_assoc()) {
+                $file = htmlspecialchars($thumb_row['file_path']);
+                $ext = strtolower(pathinfo($file, PATHINFO_EXTENSION));
+                if (in_array($ext, ['jpg', 'jpeg', 'png', 'gif'])) {
+                    $img_thumb = "<a href='$file' target='_blank'><img src='$file' style='max-height:50px; max-width:50px; border-radius:5px;'></a>";
+                    break;
+                }
+            }
+        }
 
-        // Table row
+        // Table Row
         echo "<tr onclick=\"openModal('$modal_id')\">";
         echo "<td>" . htmlspecialchars($row['client_name']) . "</td>";
         echo "<td>" . htmlspecialchars($row['preferred_date']) . "</td>";
@@ -318,55 +331,74 @@ if ($result->num_rows > 0) {
         echo "<td>" . htmlspecialchars($row['client_phone']) . "</td>";
         echo "<td>" . $staff_names . "</td>";
         echo "<td>" . $audio_link . "</td>";
-           // Image Thumbnail (first image only)
-           $img_thumb = "None";
-           $thumb_sql = "SELECT file_path FROM complaint_files WHERE complaint_id = $complaint_id";
-           $thumb_result = $conn->query($thumb_sql);
-           if ($thumb_result && $thumb_result->num_rows > 0) {
-               while ($thumb_row = $thumb_result->fetch_assoc()) {
-                   $file = htmlspecialchars($thumb_row['file_path']);
-                   $ext = strtolower(pathinfo($file, PATHINFO_EXTENSION));
-                   if (in_array($ext, ['jpg', 'jpeg', 'png', 'gif'])) {
-                       $img_thumb = "<a href='$file' target='_blank'><img src='$file' style='max-height:50px; max-width:50px; border-radius:5px;'></a>";
-                       break; // Show only the first image
-                   }
-               }
-           }
-           echo "<td>$img_thumb</td>";
-        echo "<td><span class='status-label' style='background-color: $badge_color;'>" . $status . "</span></td>";
+        echo "<td>$img_thumb</td>";
+        echo "<td><span class='status-label' style='background-color: $badge_color; padding:4px 8px; border-radius:4px; color:white;'>" . $status . "</span></td>";
         echo "</tr>";
 
-        // Modal
-        echo "<div id='$modal_id' class='modal' style='display:none; position:fixed; top:0; left:0; width:100%; height:100%; background-color: rgba(0,0,0,0.5);'>";
-        echo "<div class='modal-content' style='background:white; margin:10% auto; padding:20px; position:relative; width:60%; border-radius:10px;'>";
+        // Modal Popup
+        echo "<div id='$modal_id' class='modal' style='display:none; position:fixed; top:0; left:0; width:100%; height:100%; background-color: rgba(0,0,0,0.5); z-index:1000;'>";
+        echo "<div class='modal-content' style='background:white; margin:5% auto; padding:20px; position:relative; width:60%; border-radius:10px;'>";
 
-        // Close button
+        // Close Button
         echo "<span class='close' onclick=\"closeModal('$modal_id')\" style='font-size: 24px; font-weight: bold; color: #ff0000; position: absolute; top: 10px; right: 15px; cursor: pointer;'>&times;</span>";
 
         // Modal Content
-        echo "<p><strong><i class='fas fa-user'></i> Customer Name:</strong> " . htmlspecialchars($row['client_name']) . " (" . htmlspecialchars($row['client_email']) . ")</p>";
-        echo "<p><strong><i class='fas fa-phone'></i> Phone:</strong> " . htmlspecialchars($row['client_phone']) . "</p>";
-        echo "<p><strong><i class='fas fa-align-left'></i> Description:</strong> " . nl2br(htmlspecialchars($row['complaint_desc'])) . "</p>";
-        echo "<p><strong><i class='fas fa-calendar-alt'></i> Incident Date:</strong> " . htmlspecialchars($row['preferred_date']) . "</p>";
-        echo "<p><strong><i class='fas fa-user-tie'></i> Complaint Against:</strong> " . $staff_names . "</p>";
-        echo "<p><strong><i class='fas fa-info-circle'></i> Status:</strong> <span style='color:$badge_color;'>$status</span></p>";
+        echo "<h3>Complaint Details</h3>";
+        echo "<p><strong>Submit Date & Time:</strong> " . htmlspecialchars($row['created_at']) . "</p>";
+        echo "<p><strong>Customer:</strong> " . htmlspecialchars($row['client_name']) . " (" . htmlspecialchars($row['client_email']) . ")</p>";
+        echo "<p><strong>Phone:</strong> " . htmlspecialchars($row['client_phone']) . "</p>";
+        echo "<p><strong>Description:</strong> " . nl2br(htmlspecialchars($row['complaint_desc'])) . "</p>";
+        echo "<p><strong>Date:</strong> " . htmlspecialchars($row['preferred_date']) . "</p>";
+        echo "<p><strong>Staff:</strong> " . $staff_names . "</p>";
+        echo "<p><strong>Status:</strong> <span style='color:$badge_color; font-weight:bold;'>$status</span></p>";
 
         // Status Change Form
-        echo "<form method='post' action='update_status.php' style='margin-top:10px; margin: 0; padding: 0;'> 
-        <input type='hidden' name='complaint_id' value='$complaint_id'>";
-        
+        echo "<form method='post' action='update_status.php' style='margin: 10px 0; padding: 0;'> 
+            <input type='hidden' name='complaint_id' value='$complaint_id'>";
         $statuses = ['Pending' => 'orange', 'Working' => 'blue', 'Completed' => 'green'];
-        
         foreach ($statuses as $s => $color) {
-        $active_style = $s === $status 
-            ? "background-color: $color; color: white; font-weight: bold;" 
-            : "background-color: lightgray; color: black;";
-        echo "<button type='submit' name='status' value='$s' style='margin-right:5px; padding:5px 10px; border:none; border-radius:5px; $active_style'>$s</button>";
+            $active_style = $s === $status 
+                ? "background-color: $color; color: white; font-weight: bold;" 
+                : "background-color: lightgray; color: black;";
+            echo "<button type='submit' name='status' value='$s' style='margin-right:5px; padding:5px 10px; border:none; border-radius:5px; $active_style'>$s</button>";
         }
-    echo "</form>";
-    
+        echo "</form><br>";
 
-        echo "</div></div>"; // Close modal content and modal
+        // Display Comments
+        $comment_sql = "SELECT comment, created_at FROM complaint_comments WHERE complaint_id = $complaint_id ORDER BY created_at DESC";
+        $comment_result = $conn->query($comment_sql);
+        if ($comment_result && $comment_result->num_rows > 0) {
+            echo "<br><br><div><strong>Comments:</strong><ul style='padding-left:20px;'>";
+            while ($comment_row = $comment_result->fetch_assoc()) {
+                echo "<li>" . nl2br(htmlspecialchars($comment_row['comment'])) . 
+                     " <small>(" . $comment_row['created_at'] . ")</small></li>";
+            }
+            echo "</ul></div>";
+        }
+
+        // Display Uploaded Images
+        $image_sql = "SELECT file_path FROM complaint_files WHERE complaint_id = $complaint_id AND (file_path LIKE '%.jpg' OR file_path LIKE '%.png' OR file_path LIKE '%.jpeg' OR file_path LIKE '%.gif')";
+        $image_result = $conn->query($image_sql);
+        if ($image_result && $image_result->num_rows > 0) {
+            echo "<br><div><strong>Uploaded Images:</strong><br>";
+            while ($img_row = $image_result->fetch_assoc()) {
+                $img_path = htmlspecialchars($img_row['file_path']);
+                echo "<a href='$img_path' target='_blank'><img src='$img_path' style='max-height:40px; margin:3px; border-radius:4px;'></a>";
+            }
+            echo "</div>";
+        }
+
+        // Comment & Upload Form
+        echo "<form action='add_comment_file.php' method='POST' enctype='multipart/form-data' style='margin-top:10px; padding: 0;'>
+            <input type='hidden' name='complaint_id' value='$complaint_id'>
+            <label><strong>Add Comment:</strong></label><br>
+            <textarea name='comment' rows='2' style='width:100%; border-radius:4px; margin-bottom:6px;'></textarea><br>
+            <label><strong>Upload Image:</strong></label><br>
+            <input type='file' name='file' accept='.jpg,.jpeg,.png,.gif' style='margin-bottom:8px;'><br>
+            <button type='submit' style='background:#007BFF; color:white; padding:5px 10px; border:none; border-radius:5px;'>Submit</button>
+        </form>";
+
+        echo "</div></div>"; // End of modal content and modal box
     }
 
     echo "</tbody></table>";
@@ -376,6 +408,7 @@ if ($result->num_rows > 0) {
 
 $conn->close();
 ?>
+
 
 <!-- JavaScript for modal functionality -->
 <script>
