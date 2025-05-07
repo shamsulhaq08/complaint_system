@@ -343,14 +343,14 @@ if ($result->num_rows > 0) {
         echo "<span class='close' onclick=\"closeModal('$modal_id')\" style='font-size: 24px; font-weight: bold; color: #ff0000; position: absolute; top: 10px; right: 15px; cursor: pointer;'>&times;</span>";
 
         // Modal Content
-        echo "<h3>Complaint Details</h3>";
-        echo "<p><strong>Submit Date & Time:</strong> " . htmlspecialchars($row['created_at']) . "</p>";
-        echo "<p><strong>Customer:</strong> " . htmlspecialchars($row['client_name']) . " (" . htmlspecialchars($row['client_email']) . ")</p>";
-        echo "<p><strong>Phone:</strong> " . htmlspecialchars($row['client_phone']) . "</p>";
-        echo "<p><strong>Description:</strong> " . nl2br(htmlspecialchars($row['complaint_desc'])) . "</p>";
-        echo "<p><strong>Date:</strong> " . htmlspecialchars($row['preferred_date']) . "</p>";
-        echo "<p><strong>Staff:</strong> " . $staff_names . "</p>";
-        echo "<p><strong>Status:</strong> <span style='color:$badge_color; font-weight:bold;'>$status</span></p>";
+        echo "<h3><i class='fas fa-info-circle'></i> Complaint Details</h3>";
+        echo "<p><i class='fas fa-calendar-alt'></i> <strong>Submit Date & Time:</strong> " . htmlspecialchars($row['created_at']) . "</p>";
+        echo "<p><i class='fas fa-user'></i> <strong>Customer:</strong> " . htmlspecialchars($row['client_name']) . " (" . htmlspecialchars($row['client_email']) . ")</p>";
+        echo "<p><i class='fas fa-phone'></i> <strong>Phone:</strong> " . htmlspecialchars($row['client_phone']) . "</p>";
+        echo "<p><i class='fas fa-align-left'></i> <strong>Description:</strong> " . nl2br(htmlspecialchars($row['complaint_desc'])) . "</p>";
+        echo "<p><i class='fas fa-calendar-day'></i> <strong>Incident Date:</strong> " . htmlspecialchars($row['preferred_date']) . "</p>";
+        echo "<p><i class='fas fa-users'></i> <strong>Staff:</strong> " . $staff_names . "</p>";
+        echo "<p><i class='fas fa-flag'></i> <strong>Status:</strong> <span style='color:$badge_color; font-weight:bold;'>$status</span></p>";
 
         // Status Change Form
         echo "<form method='post' action='update_status.php' style='margin: 10px 0; padding: 0;'> 
@@ -358,8 +358,8 @@ if ($result->num_rows > 0) {
         $statuses = ['Pending' => 'orange', 'Working' => 'blue', 'Completed' => 'green'];
         foreach ($statuses as $s => $color) {
             $active_style = $s === $status 
-                ? "background-color: $color; color: white; font-weight: bold;" 
-                : "background-color: lightgray; color: black;";
+            ? "background-color: $color; color: white; font-weight: bold;" 
+            : "background-color: lightgray; color: black;";
             echo "<button type='submit' name='status' value='$s' style='margin-right:5px; padding:5px 10px; border:none; border-radius:5px; $active_style'>$s</button>";
         }
         echo "</form><br>";
@@ -368,10 +368,10 @@ if ($result->num_rows > 0) {
         $comment_sql = "SELECT comment, created_at FROM complaint_comments WHERE complaint_id = $complaint_id ORDER BY created_at DESC";
         $comment_result = $conn->query($comment_sql);
         if ($comment_result && $comment_result->num_rows > 0) {
-            echo "<br><br><div><strong>Comments:</strong><ul style='padding-left:20px;'>";
+            echo "<br><br><div><strong><i class='fas fa-comments'></i> Comments:</strong><ul style='padding-left:0; list-style-type:none;'>";
             while ($comment_row = $comment_result->fetch_assoc()) {
-                echo "<li>" . nl2br(htmlspecialchars($comment_row['comment'])) . 
-                     " <small>(" . $comment_row['created_at'] . ")</small></li>";
+            echo "<li style='margin-bottom: 10px; padding: 8px; background-color: #f9f9f9; border-radius: 5px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);'>" . 
+             nl2br(htmlspecialchars($comment_row['comment'])) . " <small style='display: block; margin-top: 5px; color: #555;'>(" . $comment_row['created_at'] . ")</small></li>";
             }
             echo "</ul></div>";
         }
@@ -380,10 +380,10 @@ if ($result->num_rows > 0) {
         $image_sql = "SELECT file_path FROM complaint_files WHERE complaint_id = $complaint_id AND (file_path LIKE '%.jpg' OR file_path LIKE '%.png' OR file_path LIKE '%.jpeg' OR file_path LIKE '%.gif')";
         $image_result = $conn->query($image_sql);
         if ($image_result && $image_result->num_rows > 0) {
-            echo "<br><div><strong>Uploaded Images:</strong><br>";
+            echo "<br><div><strong><i class='fas fa-images'></i> Uploaded Images:</strong><br>";
             while ($img_row = $image_result->fetch_assoc()) {
-                $img_path = htmlspecialchars($img_row['file_path']);
-                echo "<a href='$img_path' target='_blank'><img src='$img_path' style='max-height:40px; margin:3px; border-radius:4px;'></a>";
+            $img_path = htmlspecialchars($img_row['file_path']);
+            echo "<a href='$img_path' target='_blank'><img src='$img_path' style='max-height:40px; margin:3px; border-radius:4px;'></a>";
             }
             echo "</div>";
         }
@@ -391,14 +391,14 @@ if ($result->num_rows > 0) {
         // Comment & Upload Form
         echo "<form action='add_comment_file.php' method='POST' enctype='multipart/form-data' style='margin-top:10px; padding: 0;'>
             <input type='hidden' name='complaint_id' value='$complaint_id'>
-            <label><strong>Add Comment:</strong></label><br>
-            <textarea name='comment' rows='2' style='width:100%; border-radius:4px; margin-bottom:6px;'></textarea><br>
-            <label><strong>Upload Image:</strong></label><br>
+            <label><strong><i class='fas fa-comment-dots'></i> Add Comment:</strong></label>
+            <textarea name='comment' rows='2' style='width:100%; border-radius:4px; margin-bottom:6px;'></textarea>
+            <label><strong><i class='fas fa-upload'></i> Upload Image:</strong></label>
             <input type='file' name='file' accept='.jpg,.jpeg,.png,.gif' style='margin-bottom:8px;'><br>
-            <button type='submit' style='background:#007BFF; color:white; padding:5px 10px; border:none; border-radius:5px;'>Submit</button>
+            <button type='submit' style='background:#007BFF; color:white; padding:5px 10px; border:none; border-radius:5px;'> Submit</button>
         </form>";
 
-        echo "</div></div>"; // End of modal content and modal box
+        echo "</div></div>";
     }
 
     echo "</tbody></table>";
